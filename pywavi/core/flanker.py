@@ -1,3 +1,15 @@
+'''
+Race Peterson Noorda COM
+
+The flanker test like the P300 test is a reactionary test. It differs though because there are multiple inputs to keep track of
+the patient is presented with a scenario:
+
+>>><>>>
+They must then hit the left or right mouse button based on the oreintation of the middle arrow.
+
+The dictionary that shows the correct mouse button for the event is stored seperately in the key.py file and is imported into this script for cleanliness
+'''
+
 import pandas as pd
 from key import FLANKER_CORRECT_DICT, FLANKER_EVENT_KEY, ALL_REGIONS
 import numpy as np
@@ -9,6 +21,24 @@ from scipy.fft import fft, fftfreq
 from patient import Chunk, Patient
 
 class FlankerChunk(Chunk):
+    """
+    A class used to represent an Animal
+
+    ...
+
+    Attributes
+    ----------
+    reaction : int
+        a pandas dataframe containing the eeg data from an event occuring within a test
+    correct : str
+        checks to see if the patient got the flanker scenario correct or not
+    Methods
+    -------
+    find_reaction()
+        populates the self.reaction by finding the correct index in data
+    accuracy_check()
+        populates the self.correct by checking with the FLANKER_CORRECT_DICT
+    """
     def __init__(self, data) -> None:
         super().__init__(data)
         self.reaction = self.find_reaction()
@@ -36,6 +66,34 @@ class FlankerChunk(Chunk):
 
 
 class Flanker(Patient):
+    """
+    Flanker class has a lot of attention on it.
+
+    Attributes
+    ----------
+    _index : int
+    transformed_to : bool
+    chunk_collection : list
+    pca_components_entire_brain
+
+    Methods
+    -------
+    chunk_events()
+        appends FlankerChunk into the self.chunk_collection list
+
+    get_correct_events()
+        creates a list of only the chunks that were correctly answered by the patient
+
+    get_incorrect_events()
+        creates a list of only the chunks that were incorrectly answered by the patient
+
+    region_breakdown
+    meta_collections
+    accuracy_total
+    pca_single_region
+    pca_brain
+    basis_change
+    """
     def __init__(self, path, identifier=None, condition=None):
         super().__init__(path, identifier, condition)
         self._index = 0
