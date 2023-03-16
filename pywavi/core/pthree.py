@@ -112,12 +112,6 @@ class PThreeHundred(Patient):
             return np.sum(threes)/len(threes)
         else:
             return 100 # this is becasue within the second there was not a response or "missed oddball"
-
-    def markers(self):
-        print(pd.Series([int(chunk.three) for chunk in self.all_chunks if chunk.three and chunk.three > 0]).describe())
-
-    def event(self):
-        print(pd.Series([chunk.combine_nodes() for chunk in self.all_chunks if chunk.name == 2]).describe())
-
+    
     def __getitem__(self, index):
         return self.all_chunks[index]
