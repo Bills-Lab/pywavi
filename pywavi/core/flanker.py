@@ -49,7 +49,7 @@ class FlankerChunk(Chunk):
         finds the reaction of the event stimulus
         """
         for i, row in self.chunk_data.iloc[1:].iterrows():
-            if row["Event"] != 0:
+            if row["Event"] in FLANKER_CORRECT_DICT.keys():
                 return row["Event"]
         return 0
 
@@ -103,18 +103,21 @@ class Flanker(Patient):
         self.pca_components_entire_brain = False
 
     def chunk_events(self, data):
+        '''creates FlankerChunk objects from a flanker test csv'''
         for i,row in data.iterrows():
             if int(row["Event"]) != 0:
                 if int(row["Event"]) > 121:
-                    self.chunk_collection.append(FlankerChunk(data.iloc[i:i+500, :].reset_index(drop=True))) # NOTE: currently set for 2 seconds from event stimulus
+                    self.chunk_collection.append(FlankerChunk(data.iloc[i + self.a:i+self.b, :].reset_index(drop=True))) # NOTE: currently set for 2 seconds from event stimulus
 
+    # TODO: These functions can be combined with out iterating through twice
     def get_correct_events(self):
+        """Flanker tests have a right and wrong answer and this """
         return [event for event in self.chunk_collection if event.correct]
-    
     def get_incorrect_events(self):
+        """Flanker tests have a right and wrong answer and this """
         return [event for event in self.chunk_collection if not event.correct]
 
-    def region_breakdown(self, event:str) -> list:
+    def region_breakdown(self, event:str) -> list: # TODO: I don't remember what this does which probably means it can go
         """ gets a chunk based on name and takes its data to numpy array"""
         a = [chunk.chunk_data for chunk in self.chunk_collection if chunk.chunk_name == event]
         region_dict = {}
@@ -152,47 +155,3 @@ class Flanker(Patient):
             if chunk.correct:
                 self.cul_correct += 1
         return self.cul_correct / len(self.chunk_collection)
-    
-    def pca_single_region(self, region:str, components=6):
-        '''
-        TODO: get all eigenvectors based on a tolerance for each region
-        UNDERCONSTRUCTION:
-        '''
-        a = np.concatenate([self.region_breakdown(e)[region][:,:10] for e in FLANKER_EVENT_KEY], axis=1) # This average is called "The Event Related Potential"
-        pca = sklearn.decomposition.PCA(n_components=components)
-        pca.fit(a.T)
-
-        return pca.components_
-    
-    def pca_brain(self, components=6):
-        brain = np.concatenate([self.pca_single_region(region) for region in ALL_REGIONS], axis=0)
-        pca = sklearn.decomposition.PCA(n_components=components)
-        pca.fit(brain)
-        self.pca_components_entire_brain = pca.components_
-        return pca.components_
-    
-    def basis_change(self, input_space):
-        """
-        Performs the basis change transformation input space being 
-        the argument Flanker and the output space being the self
-        let X be the input basis vectors and let Y be the Output Space basis vectors
-        then X B = Y
-        B = inv(X) Y
-        makes B a basis transformation from X to Y
-        """
-        # if self.pca_components_entire_brain == False:
-        #     raise("PCA components for the entire brain do not exis yet please run self.pca_brain and try again")
-        # if input_space.pca_components_entire_brain == False:
-        #     print("Input Flanker has not made PCA components doing so now...")
-        #     input_space.pca_brain()
-        #     print("Complete")
-        # LA.inv(input_space.pca_components_entire_brain)
-        # transformation = np.matmul(LA.inv(input_space.pca_components_entire_brain), self.pca_components_entire_brain)
-        # print(transformation)
-        transformation = LA.lstsq(self.pca_components_entire_brain, input_space.pca_components_entire_brain)
-        print(transformation[0])
-        print(transformation[0].shape)
-        print(self.pca_components_entire_brain)
-        print("===================================")
-        print(np.matmul(input_space.pca_components_entire_brain, transformation[0]))
-        return transformation[0]

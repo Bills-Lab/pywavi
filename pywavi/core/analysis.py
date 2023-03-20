@@ -20,3 +20,48 @@ def get_node_avg_of_chunk(self, node_name:str):
     """returns the the average of every chunk for a specific node"""
     all_node = [chunk.data_df[node_name].to_numpy() for chunk in self.all_chunks]
     return np.sum(all_node, axis=0) / len(all_node)
+
+
+def pca_single_region(self, region:str, components=6):
+    '''
+    TODO: get all eigenvectors based on a tolerance for each region
+    UNDERCONSTRUCTION:
+    '''
+    a = np.concatenate([self.region_breakdown(e)[region][:,:10] for e in FLANKER_EVENT_KEY], axis=1) # This average is called "The Event Related Potential"
+    pca = sklearn.decomposition.PCA(n_components=components)
+    pca.fit(a.T)
+
+    return pca.components_
+
+def pca_brain(self, components=6):
+    brain = np.concatenate([self.pca_single_region(region) for region in ALL_REGIONS], axis=0)
+    pca = sklearn.decomposition.PCA(n_components=components)
+    pca.fit(brain)
+    self.pca_components_entire_brain = pca.components_
+    return pca.components_
+
+def basis_change(self, input_space):
+    """
+    Performs the basis change transformation input space being 
+    the argument Flanker and the output space being the self
+    let X be the input basis vectors and let Y be the Output Space basis vectors
+    then X B = Y
+    B = inv(X) Y
+    makes B a basis transformation from X to Y
+    """
+    # if self.pca_components_entire_brain == False:
+    #     raise("PCA components for the entire brain do not exis yet please run self.pca_brain and try again")
+    # if input_space.pca_components_entire_brain == False:
+    #     print("Input Flanker has not made PCA components doing so now...")
+    #     input_space.pca_brain()
+    #     print("Complete")
+    # LA.inv(input_space.pca_components_entire_brain)
+    # transformation = np.matmul(LA.inv(input_space.pca_components_entire_brain), self.pca_components_entire_brain)
+    # print(transformation)
+    transformation = LA.lstsq(self.pca_components_entire_brain, input_space.pca_components_entire_brain)
+    print(transformation[0])
+    print(transformation[0].shape)
+    print(self.pca_components_entire_brain)
+    print("===================================")
+    print(np.matmul(input_space.pca_components_entire_brain, transformation[0]))
+    return transformation[0]

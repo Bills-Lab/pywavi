@@ -19,8 +19,7 @@ import matplotlib.pyplot as plt
 from scipy.fft import fft, fftfreq
 from patient import Chunk, Patient
 from scipy.integrate import simpson
-import os
-import math
+
 
 class PChunk(Chunk):
     """
@@ -105,7 +104,7 @@ class PThreeHundred(Patient):
         two_events = [chunk.combine_nodes() for chunk in self.all_chunks if chunk.name == 2]
         return np.sum(two_events, axis=0) / len(two_events)
 
-    def combine_markers(self):
+    def combine_impacts(self):
         """This function comes up with an average occurence of the impaoct event after an oddball tone"""
         threes = [int(chunk.three) for chunk in self.all_chunks if chunk.three and chunk.three > 0]
         if threes:
