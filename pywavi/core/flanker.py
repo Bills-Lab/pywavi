@@ -41,29 +41,22 @@ class FlankerChunk(Chunk):
     """
     def __init__(self, data) -> None:
         super().__init__(data)
-        self.reaction = self.find_reaction()
+        self.stimulus, self.reaction = self.find_reaction() # these are indices values
         self.correct = self.accuracy_check()
 
     def find_reaction(self):
         """
-        finds the reaction of the event stimulus
+        finds the reaction and the event stimulus
         """
-        for i, row in self.chunk_data.iloc[1:].iterrows():
-            if row["Event"] in FLANKER_CORRECT_DICT.keys():
-                return row["Event"]
-        return 0
+        return np.where(self.chunk_data["Event"] > 0)[0][0] , np.where(self.chunk_data["Event"] > 0)[0][1]
 
     def accuracy_check(self):
         """
         labels the chunk based on the input of the user. True if the patient gets it correct.
         """
-        if self.reaction == 0:
-            return False
-        elif self.chunk_name in FLANKER_CORRECT_DICT[str(int(self.reaction))]:
+        if str(self.chunk_data["Event"][self.stimulus]) in FLANKER_CORRECT_DICT[str(self.chunk_data["Event"][self.reaction])]:
             return True
-        else:
-            return False
-
+        else: return False
 
 class Flanker(Patient):
     """
@@ -94,8 +87,8 @@ class Flanker(Patient):
     pca_brain
     basis_change
     """
-    def __init__(self, path, identifier=None, condition=None):
-        super().__init__(path, identifier, condition)
+    def __init__(self, path, interval, identifier=None, condition=None):
+        super().__init__(path, interval, identifier, condition)
         self._index = 0
         self.transformed_to = False
         self.chunk_collection = []
@@ -107,7 +100,8 @@ class Flanker(Patient):
         for i,row in data.iterrows():
             if int(row["Event"]) != 0:
                 if int(row["Event"]) > 121:
-                    self.chunk_collection.append(FlankerChunk(data.iloc[i + self.a:i+self.b, :].reset_index(drop=True))) # NOTE: currently set for 2 seconds from event stimulus
+                    if i + self.a > 0 and i + self.b <= data.shape[0]:
+                        self.chunk_collection.append(FlankerChunk(data.iloc[i + self.a:i+self.b, :].reset_index(drop=True))) # NOTE: currently set for 2 seconds from event stimulus
 
     # TODO: These functions can be combined with out iterating through twice
     def get_correct_events(self):
@@ -155,3 +149,6 @@ class Flanker(Patient):
             if chunk.correct:
                 self.cul_correct += 1
         return self.cul_correct / len(self.chunk_collection)
+        
+    def __getitem__(self,index):
+        return self.chunk_collection[index]

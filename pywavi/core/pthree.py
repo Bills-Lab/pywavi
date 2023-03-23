@@ -35,23 +35,23 @@ class PChunk(Chunk):
     Methods
     -------
     find_impact()
-        searches through the dataset to find where the human impact is
+        searches through the dataset to find where the human impact are and the stimulus
 
     vis_event_diff()
         simple visualization of the chunk that shows the marker of where they made impact
     """
     def __init__(self, data) -> None:
         super().__init__(data)
-        self.find_impact()
+        self.stimulus, self.reaction = self.find_impact() # these are indicies not times
         self.name_test()
     
     def name_test(self):
         self.test_name = "P300"
 
     def find_impact(self):
-        for i, row in self.data_df.iterrows():
-                if row["Event"] == 3:
-                    self.impact = i
+        events = np.where(self.chunk_data["Event"])[0]
+        stimulus, reaction = events[0], events[1]
+        return stimulus, reaction
 
 class PThreeHundred(Patient):
     """
@@ -96,7 +96,7 @@ class PThreeHundred(Patient):
         '''chunks the dataset based on the 1 and 2 tones'''
         all_chunks = []
         for i in range(len(self.event_index) - 1):
-            all_chunks.append(PChunk(self.eeg_df.iloc[self.event_index[i] - self.a :self.event_index[i] + self.b])) # Originally 100
+            all_chunks.append(PChunk(self.eeg_df.iloc[self.event_index[i] + self.a :self.event_index[i] + self.b])) # Originally 100
         return all_chunks
     
     def combine_oddball_events(self):
