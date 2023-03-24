@@ -1,14 +1,29 @@
 import numpy as np
 from scipy.integrate import simpson
+from patient import Patient
+from key import RATE, FREQ
+import matplotlib.pyplot as plt
 
+def fft_denoise_wave(chunk_data, region, frequency_threshold):
+    fhat = np.fft.rfft(chunk_data, len(chunk_data))
+    PSD = fhat * np.conj(fhat)/len(chunk_data)
+    plt.figure()
+    plt.plot(PSD[:len(chunk_data)//2])
+    indices = PSD > 300
+    psdclean = PSD * indices
+    fhat_clean = indices * fhat
+    f = np.fft.irfft(fhat_clean)
+    plt.figure()
+    plt.plot(f)
 
-def fft_denoise_wave(region, chunk, freqency_threshold):
+def fft_denoise_entire_patient(patient, region, freqency_threshold):
     """
     region: a region from the key.py of the ALL_REGION
     chunk: a instance of the PChunk or FlankerChunk
     freqency_threshold: a threshold to leave out frequencies can be tuple for a low high range
     """
-
+    for chunk_data in patient.chunk_collection:
+        fft_denoise_wave(chunk_data, region=region, frequency_threshold=freqency_threshold)
     return
 
 def get_node_and_integrate(self, node_name:str): # analysis
