@@ -1,37 +1,44 @@
 import numpy as np
 from scipy.integrate import simpson
 from patient import Patient
-from key import RATE, FREQ
+from key import RATE, FREQ, ALL_REGIONS
 import matplotlib.pyplot as plt
 
-def fft_denoise_wave(chunk, region, frequency_threshold):
-    chunk_data = chunk.chunk_data[region].to_numpy()
-    print(chunk.impact)
+def fft_denoise_wave(data, frequency_threshold):
+    # chunk_data = data.to_numpy()
+    chunk_data = data
     fhat = np.fft.rfft(chunk_data, len(chunk_data))
     PSD = fhat * np.conj(fhat)/len(chunk_data)
-    # plt.figure()
-    # plt.plot(PSD[:len(chunk_data)//2])
     indices = PSD > frequency_threshold
-    psdclean = PSD * indices
     fhat_clean = indices * fhat
-    f = np.fft.irfft(fhat_clean)
-    if not chunk.impact:
-        plt.figure()
-        plt.plot(f, '-gD', markevery=[chunk.stimulus])
-        plt.show()
-    else:
-        plt.figure()
-        plt.plot(f, '-gD', markevery=[chunk.stimulus, chunk.impact])
-        plt.show()
+    return np.fft.irfft(fhat_clean)
 
-def fft_denoise_entire_patient(patient, region, freqency_threshold):
+def plot_fft_denoise_average_of_patient(patient, region, frequency_threshold):
+    regional_data = np.mean(np.vstack([chunk.chunk_data[region].to_numpy() for chunk in patient.chunk_collection]),axis=1)
+    average_reaction = sum([chunk.reaction for chunk in patient.chunk_collection])/len(patient.chunk_collection)
+    denoised_regional_data = fft_denoise_wave(regional_data, 300)
+    plt.figure()
+    plt.plot(denoised_regional_data, '-gD', markevery=[100, average_reaction])
+    plt.show()
+
+
+def plot_fft_denoise_entire_patient(patient, region, freqency_threshold):
     """
     region: a region from the key.py of the ALL_REGION
     chunk: a instance of the PChunk or FlankerChunk
-    freqency_threshold: a threshold to leave out frequencies can be tuple for a low high range
+    freqency_threshold: a threshold to leave out frequencies
     """
-    for chunk in patient.chunk_collection:
-        fft_denoise_wave(chunk, region=region, frequency_threshold=freqency_threshold)
+    print("LEN OF CHUNK _COLLECTION", len(patient.chunk_collection))
+    for i, chunk in enumerate(patient.chunk_collection):
+        f = fft_denoise_wave(chunk.chunk_data[region], frequency_threshold=freqency_threshold)
+        if not chunk.reaction:
+            # plt.figure()
+            plt.subplot(10,11,i + 1)
+            plt.plot(f, '-gD', markevery=[chunk.stimulus])
+        else:
+            plt.subplot(10,11,i + 1)
+            plt.plot(f, '-gD', markevery=[chunk.stimulus, chunk.reaction])
+    plt.show()
 
 def get_node_and_integrate(self, node_name:str): # analysis
     all_node = [abs(simpson(chunk.data_df[node_name].to_numpy())) for chunk in self.all_chunks]
