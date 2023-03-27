@@ -4,17 +4,25 @@ from patient import Patient
 from key import RATE, FREQ
 import matplotlib.pyplot as plt
 
-def fft_denoise_wave(chunk_data, region, frequency_threshold):
+def fft_denoise_wave(chunk, region, frequency_threshold):
+    chunk_data = chunk.chunk_data[region].to_numpy()
+    print(chunk.impact)
     fhat = np.fft.rfft(chunk_data, len(chunk_data))
     PSD = fhat * np.conj(fhat)/len(chunk_data)
-    plt.figure()
-    plt.plot(PSD[:len(chunk_data)//2])
-    indices = PSD > 300
+    # plt.figure()
+    # plt.plot(PSD[:len(chunk_data)//2])
+    indices = PSD > frequency_threshold
     psdclean = PSD * indices
     fhat_clean = indices * fhat
     f = np.fft.irfft(fhat_clean)
-    plt.figure()
-    plt.plot(f)
+    if not chunk.impact:
+        plt.figure()
+        plt.plot(f, '-gD', markevery=[chunk.stimulus])
+        plt.show()
+    else:
+        plt.figure()
+        plt.plot(f, '-gD', markevery=[chunk.stimulus, chunk.impact])
+        plt.show()
 
 def fft_denoise_entire_patient(patient, region, freqency_threshold):
     """
@@ -22,9 +30,8 @@ def fft_denoise_entire_patient(patient, region, freqency_threshold):
     chunk: a instance of the PChunk or FlankerChunk
     freqency_threshold: a threshold to leave out frequencies can be tuple for a low high range
     """
-    for chunk_data in patient.chunk_collection:
-        fft_denoise_wave(chunk_data, region=region, frequency_threshold=freqency_threshold)
-    return
+    for chunk in patient.chunk_collection:
+        fft_denoise_wave(chunk, region=region, frequency_threshold=freqency_threshold)
 
 def get_node_and_integrate(self, node_name:str): # analysis
     all_node = [abs(simpson(chunk.data_df[node_name].to_numpy())) for chunk in self.all_chunks]
