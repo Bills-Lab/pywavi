@@ -4,7 +4,7 @@ from patient import Patient
 from key import RATE, FREQ, ALL_REGIONS
 import matplotlib.pyplot as plt
 
-def fft_denoise_wave(data, frequency_threshold):
+def fft_denoise_wave(data, frequency_threshold:int):
     # chunk_data = data.to_numpy()
     chunk_data = data
     fhat = np.fft.rfft(chunk_data, len(chunk_data))
@@ -13,43 +13,48 @@ def fft_denoise_wave(data, frequency_threshold):
     fhat_clean = indices * fhat
     return np.fft.irfft(fhat_clean)
 
-def plot_fft_denoise_average_of_patient(patient, region, frequency_threshold):
-    regional_data = np.mean(np.vstack([chunk.chunk_data[region].to_numpy() for chunk in patient.chunk_collection]),axis=1)
+def get_regional_average(self, patient, region:str):
+    """returns the the average of every chunk for a specific region"""
+    return np.mean(np.vstack([chunk.chunk_data[region].to_numpy() for chunk in patient.chunk_collection]),axis=0)
+
+
+def fft_denoise_average_of_patient(patient, region:str, frequency_threshold:int):
+    regional_data = get_regional_average(patient, region)
+    print(regional_data.shape)
     average_reaction = sum([chunk.reaction for chunk in patient.chunk_collection])/len(patient.chunk_collection)
-    denoised_regional_data = fft_denoise_wave(regional_data, 300)
+    print(average_reaction)
+    denoised_regional_data = fft_denoise_wave(regional_data, frequency_threshold)
     plt.figure()
-    plt.plot(denoised_regional_data, '-gD', markevery=[100, average_reaction])
-    plt.show()
+    plt.title("Average of {} region".format(region))
+    plt.plot(denoised_regional_data, '-gD', markevery=[100, int(average_reaction)])
+    plt.savefig("Average of {} region.png".format(region))
+    return denoised_regional_data
 
 
-def plot_fft_denoise_entire_patient(patient, region, freqency_threshold):
+def fft_denoise_entire_patient(patient, region:str, freqency_threshold):
     """
     region: a region from the key.py of the ALL_REGION
     chunk: a instance of the PChunk or FlankerChunk
     freqency_threshold: a threshold to leave out frequencies
     """
     print("LEN OF CHUNK _COLLECTION", len(patient.chunk_collection))
+    every_sample = []
     for i, chunk in enumerate(patient.chunk_collection):
         f = fft_denoise_wave(chunk.chunk_data[region], frequency_threshold=freqency_threshold)
+        every_sample.append(f)
         if not chunk.reaction:
-            # plt.figure()
             plt.subplot(10,11,i + 1)
             plt.plot(f, '-gD', markevery=[chunk.stimulus])
         else:
             plt.subplot(10,11,i + 1)
             plt.plot(f, '-gD', markevery=[chunk.stimulus, chunk.reaction])
-    plt.show()
+    plt.savefig("Every {} wave.png".format(region))
+    return every_sample
 
-def get_node_and_integrate(self, node_name:str): # analysis
-    all_node = [abs(simpson(chunk.data_df[node_name].to_numpy())) for chunk in self.all_chunks]
+def get_node_and_integrate(self, patient, region:str): # analysis
+    all_node = [abs(simpson(chunk.data_df[region].to_numpy())) for chunk in patient.all_chunks]
     return sum(all_node) / len(all_node)
     # return all_node
-
-def get_node_avg_of_chunk(self, node_name:str):
-    """returns the the average of every chunk for a specific node"""
-    all_node = [chunk.data_df[node_name].to_numpy() for chunk in self.all_chunks]
-    return np.sum(all_node, axis=0) / len(all_node)
-
 
 def pca_single_region(self, region:str, components=6):
     '''
