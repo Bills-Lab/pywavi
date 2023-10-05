@@ -6,6 +6,10 @@ from scipy.fft import fft, fftfreq
 import os
 import glob
 
+class IncorrectInterval(Exception):
+    "Raised: Interval is not of length 2. Must be length two (a,b) for interval that preceeds the initial condition of the test please format (-100, 500) to signal 100 indexes before stimulus and 500 indexes after stimulus"
+    pass
+
 class Chunk:
     """
     A class used to represent an Animal
@@ -28,10 +32,11 @@ class Chunk:
     def __init__(self, data) -> None:
         self.chunk_data = data # pd.df
         self.chunk_name = str(data["Event"][0])
+        self.impact = None
     
-    def average_chunk(self):
-        """Averages all regions from EEG cap into one vector"""
-        return self.chunk_data[["FP1", "FP2", "F3", "F4", "F7", "F8", "C3", "C4", "P3", "P4", "O1", "O2", "T3", "T4", "T5", "T6", "FZ", "CZ", "PZ"]].mean(axis=1)
+    def combine_nodes(self, method='avg'):
+        if method == 'avg':
+            return np.array(self.data_df.drop(["Event"], axis=1).mean(axis=1))
 
 class Patient:
     """
@@ -61,33 +66,13 @@ class Patient:
             creates a viz for a specific region of the brain
     """
 
-    def __init__(self, path, identifier=None, condition=None):
+    def __init__(self, path:str, interval:tuple, identifier=None, condition=None):
         self.csv_path = path
         self.condition = condition
-        self.patient_identifier = identifier
-        self.name = os.path.basename(self.csv_path)[:4] # this may be redundant 
+        self.patient_identifier = os.path.basename(self.csv_path)[:4]
         self.eeg_df = pd.read_csv(path)[["Event","FP1", "FP2", "F3", "F4", "F7", "F8", "C3", "C4", "P3", "P4", "O1", "O2", "T3", "T4", "T5", "T6", "FZ", "CZ", "PZ"]]
-
-    def fast_fourier(self, node_name:str):
-        '''param: node_name:str is the initialism of the region of the brain that you would like to '''
-        data = np.array(self.eeg_df[node_name])
-        y = fft(np.array(data))
-        xf = fftfreq(data.shape[0], 0.01)
-        plt.plot(xf[:data.shape[0]], y[:data.shape[0]])
-        plt.show()
-        return
-    
-    def visualize_region(self, node_name):
-        if node_name == "all":
-            data = self.eeg_df.iloc[:, 1:].mean(axis=1)
-        else:
-            data = self.eeg_df[node_name]
-        
-        fig, ax = plt.subplot()
-        X = list(range(len(data)))
-        Y = data.to_numpy().reshape(1,-1)
-        ax.plot(X, Y, '-gD', markevery=[self.three], label='Patient Impact')
-        ax.set_title("Wave of {}".format(node_name))
-        plt.legend()
-        plt.show()
-        return
+        self.test_name = None
+        try:
+            self.a, self.b = tuple(interval)
+        except IncorrectInterval:
+            raise("length of interval is {}".format(len(interval)))
