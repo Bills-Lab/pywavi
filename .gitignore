@@ -127,3 +127,18 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# wavi files
+*.eeg
+*.wav
+*.wavi
+*.art
+*.coh
+*.edf
+*.evt
+*.mag
+*.p300a
+*.p300i
+*.p300t
+*.csv
+
