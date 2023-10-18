@@ -1,10 +1,12 @@
 import glob
 import pandas as pd
 
-def parse_raw(self, path):
+def parse_raw(path):
     """This function parses raw files from the EEG device and stores them in CSV files
-        
-        This function does not store the data in memory rather it persists it to a directory for further use
+       This function does not store the data in memory rather it persists it to a directory for further use
+
+    Args:
+        path (str): path to the directory containing the raw files. This directory should contain subdirectories that have the .art, .mag, .eeg files in them.
     """
 
     def get_time(df):
@@ -85,3 +87,6 @@ def parse_raw(self, path):
     
     for subfolder in usable_folders:
         combine_eeg_files(subfolder)
+
+if __name__ == "__main__":
+    parse_raw("./data")
