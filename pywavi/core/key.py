@@ -4,3 +4,7 @@ FLANKER_EVENT_KEY = ["122","123","124","125","126","127"]
 FLANKER_CORRECT_DICT = {"120": ["122", "123", "126"], "121": ["124", "125", "127"]}
 # Every region of the brain
 ALL_REGIONS = ["FP1", "FP2", "F3", "F4", "F7", "F8", "C3", "C4", "P3", "P4", "O1", "O2", "T3", "T4", "T5", "T6", "FZ", "CZ", "PZ"]
+
+# WAVI rate
+RATE = 250
+FREQ = 1/RATE

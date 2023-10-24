@@ -1,7 +1,6 @@
 from pywavi import WaviDataset
 from pywavi.core.preprocessing import butter_lowpass_filter, butter_highpass_filter, apply_notch_filter
 from pywavi.util.parse import parse_raw
-from deprecated.parse import parse_raw as pr
 import matplotlib.pyplot as plt
 import numpy as np
 import time

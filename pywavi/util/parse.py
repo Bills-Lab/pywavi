@@ -4,13 +4,9 @@ from .. import WaviDataset
 import os
 
 def parse_raw(path):
-    """
-    Parses raw data from a WAVI EEG recording and persists it to a CSV file.
-
-    Parameters
-    ----------
-    path : str
-        The path to the directory containing the WAVI EEG recording. A single recording (patient) should be a directory of its own that contains the .eeg, .art, .mag, and .evt files.
+    """This function parses raw files from the EEG device and stores them in CSV files
+        
+        This function does not store the data in memory rather it persists it to a directory for further use
     """
 
     def combine_eeg_files(folder):
