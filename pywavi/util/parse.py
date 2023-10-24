@@ -1,87 +1,77 @@
 import glob
 import pandas as pd
+from .. import WaviDataset
+import os
 
-def parse_raw(self, path):
-    """This function parses raw files from the EEG device and stores them in CSV files
-        
-        This function does not store the data in memory rather it persists it to a directory for further use
+def parse_raw(path):
+    """
+    Parses raw data from a WAVI EEG recording and persists it to a CSV file.
+
+    Parameters
+    ----------
+    path : str
+        The path to the directory containing the WAVI EEG recording. A single recording (patient) should be a directory of its own that contains the .eeg, .art, .mag, and .evt files.
     """
 
-    def get_time(df):
-        time_msec = 4*df.name
-        time_sec = time_msec/1000
-        time_min = time_sec/60
-        df['time_msec'] = time_msec
-        df['time_sec'] = time_sec
-        df['time_min'] = time_min
-        return df
-
     def combine_eeg_files(folder):
-        # files = os.listdir(folder)
-        eeg_files = glob.glob(folder+'/*eeg')
-        if len(eeg_files) > 1:
-            print("\tSubfolder "+folder+' contains more than one ".eeg" file.')
+        files = os.listdir(folder)
+        
+        # Filter files based on their extensions
+        eeg_files = [f for f in files if f.endswith('.eeg')]
+        art_files = [f for f in files if f.endswith('.art')]
+        mag_files = [f for f in files if f.endswith('.mag')]
+        evt_files = [f for f in files if f.endswith('.evt')]
+
+        if len(eeg_files) != 1:
+            print(f"\tSubfolder {folder} contains {len(eeg_files)} '.eeg' files.")
             print("\tThis folder will be skipped.")
-            #continue
-        eeg_file = eeg_files[0]
-        art_file = None
-        art_files = glob.glob(folder+'/*art')
-        if len(art_files) == 1:
-            art_file = art_files[0]
-        mag_file = None
-        mag_files = glob.glob(folder+'/*mag')
-        if len(mag_files) == 1:
-            mag_file = mag_files[0]
-        evt_file = None
-        evt_files = glob.glob(folder+'/*evt')
-        if len(evt_files) == 1:
-            evt_file = evt_files[0]
+            return
 
+        eeg_file, art_file, mag_file, evt_file = [os.path.join(folder, f) for f in (eeg_files[0], art_files[0] if art_files else None, mag_files[0] if mag_files else None, evt_files[0] if evt_files else None)]
+        
         try:
-            output_file_name = folder+'/'+folder.split('/')[-2]+'_'+folder.split('/')[-1]+'_WAVI_eeg.csv'
+            output_file_name = os.path.join(folder, '_'.join(folder.split(os.sep)[-2:]) + '_WAVI_eeg.csv')
         except IndexError:
-            output_file_name = folder+'/'+folder.split('/')[-1]+'_WAVI_eeg.csv'
+            output_file_name = os.path.join(folder, folder.split(os.sep)[-1] + '_WAVI_eeg.csv')
 
-        eeg_df = pd.read_csv(eeg_file, header = None, delim_whitespace=True)
+        eeg_df = pd.read_csv(eeg_file, header=None, delim_whitespace=True)
+
         if mag_file:
             mag_df = pd.read_csv(mag_file, delim_whitespace=True)
             probe_labels = mag_df["LOC"].values
-            eeg_df = eeg_df[eeg_df.columns[0:len(probe_labels)]]
+            eeg_df = eeg_df.iloc[:, :len(probe_labels)]
             eeg_df.columns = probe_labels
-        # Now to get the time stamp for each entry.
-        eeg_df = eeg_df.apply(get_time, axis = 1)
+
+        time_msec = 4 * eeg_df.index.to_numpy()
+        eeg_df['time_msec'] = time_msec
+        eeg_df['time_sec'] = time_msec / 1000
+        eeg_df['time_min'] = eeg_df['time_sec'] / 60
+
+        data_to_combine = [eeg_df]
 
         if art_file:
-            art_df = pd.read_csv(art_file, header = None, sep=' ')
+            art_df = pd.read_csv(art_file, header=None, sep=' ')
             if mag_file:
-                art_df = art_df[art_df.columns[0:len(probe_labels)]]
-                art_labels = []
-                for name in probe_labels:
-                    art_labels.append(name+'_Artifact')
-                art_df.columns = art_labels
+                art_df = art_df.iloc[:, :len(probe_labels)]
+                art_df.columns = [f"{name}_Artifact" for name in probe_labels]
+            data_to_combine.append(art_df)
+        
         if evt_file:
-            evt_df = pd.read_csv(evt_file, header = None)
-            evt_df.columns=['Event']
+            evt_df = pd.read_csv(evt_file, header=None)
+            evt_df.columns = ['Event']
+            data_to_combine.append(evt_df)
 
-        dataframes_to_combine = []
-        if evt_file:
-            dataframes_to_combine.append(evt_df)
-        dataframes_to_combine.append(eeg_df)
-        if art_file:
-            dataframes_to_combine.append(art_df)
-        combined_data = pd.concat(dataframes_to_combine, axis = 1)
-        combined_data.to_csv(output_file_name)
+        combined_data = pd.concat(data_to_combine, axis=1)
+        print(combined_data.columns)
+        return output_file_name, combined_data.values
 
-    input_directory = path
-    all_folders = glob.glob(input_directory+'/**/**')
-    usable_folders = []
-    for subfolder in all_folders:
-        if subfolder.endswith('eeg'):
-            usable_folders.append('/'.join(subfolder.split('/')[:-1]))
-        if len(glob.glob(subfolder+'/*.eeg')) > 0:
-            usable_folders.append(subfolder)
-    if len(usable_folders) == 0:
+    usable_folders = set()
+
+    for root, dirs, files in os.walk(path):
+        if any(f.endswith('.eeg') for f in files):
+            usable_folders.add(root)
+
+    if not usable_folders:
         raise IndexError("\tNo subdirectories from your specified input directory contain '.eeg' files.")
     
-    for subfolder in usable_folders:
-        combine_eeg_files(subfolder)
+    return [WaviDataset(*combine_eeg_files(folder)) for folder in usable_folders]
