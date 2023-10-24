@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.signal import butter, lfilter, iirnotch
-import sklearn
 from .. import SAMPLING_RATE
 
 
